@@ -672,7 +672,7 @@ appName: frontend
 - Using the helm chart deploy both the frontend and backend from terraform
 
 <details>
-    <summary>Need help></summary>
+    <summary>Need help?</summary>
 
 Here's my code for the frontend, you'll likely need to set extra different values
 
@@ -719,11 +719,11 @@ resource "helm_release" "frontend" {
 - Add a domain name to your digital ocean account and connect your frontend service to it
 - Deploy multiple backend services and communicate between them
 - Automate deployments by versioning the docker images and using github actions
-- 
+- Setup PubSub to send messages between services
+- Make a protobuf file, generate the types, and use rpc to communicate between services
 
 
 # Cleaning up
-
 You'll be charged by digital ocean if you leave this running.
 
 Run `terraform destroy` to delete everything
