@@ -56,119 +56,49 @@ resource "kubernetes_secret" "docker_credentials" {
   type = "kubernetes.io/dockerconfigjson"
 }
 
-resource "kubernetes_deployment" "deployment" {
-  metadata {
-    name = "nginx-example"
-    labels = {
-      app = "NginxExample"
-    }
-  }
-
-  spec {
-    replicas = 1
-    selector {
-      match_labels = {
-        app = "NginxExample"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          app = "NginxExample"
-        }
-      }
-      spec {
-        container {
-          image = "nginx:latest"
-          name  = "example"
-
-          port {
-            container_port = 80
-          }
-
-        }
-      }
-    }
+provider "helm" {
+  kubernetes {
+    host                   = digitalocean_kubernetes_cluster.cluster.endpoint
+    token                  = digitalocean_kubernetes_cluster.cluster.kube_config[0].token
+    cluster_ca_certificate = base64decode(
+      digitalocean_kubernetes_cluster.cluster.kube_config[0].cluster_ca_certificate
+    )
   }
 }
 
-resource "kubernetes_service" "nginx-example" {
-  metadata {
-    name = "nginx-example"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.deployment.metadata[0].labels.app
-    }
-    port {
-      port        = 8080
-      target_port = 80
-    }
-    type = "LoadBalancer"
-  }
-}
 
-resource "kubernetes_deployment" "frontend" {
-  metadata {
-    name = "frontend"
-    labels = {
-      app = "frontend"
-    }
+resource "helm_release" "frontend" {
+  name  = "frontend"
+  chart = "${path.module}/../services/frontend/frontend"
+
+  set {
+    name  = "image.repository"
+    value = "${digitalocean_container_registry.container_registry.endpoint}/frontend"
+  }
+  set {
+    name  = "image.tag"
+    value = "latest"
   }
 
-  spec {
-    replicas = 1
-    selector {
-      match_labels = {
-        app = "frontend"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          app = "frontend"
-        }
-      }
-      spec {
-        image_pull_secrets {
-          name = kubernetes_secret.docker_credentials.metadata[0].name
-        }
+  set {
+    name = "imagePullSecretsName"
+    value = kubernetes_secret.docker_credentials.metadata[0].name
+  }
 
-        container {
-          image = "${digitalocean_container_registry.container_registry.endpoint}/frontend:latest"
-          image_pull_policy = "Always"
-          name  = "example"
+  set {
+    name  = "service.port"
+    value = "3000"
+  }
+  set {
+    name  = "service.targetPort"
+    value = "3000"
+  }
 
-          port {
-            container_port = 3000
-          }
-
-          env {
-            name = "API_URL"
-            value = "backend.default.svc.cluster.local"
-          }
-        }
-      }
-    }
+  set {
+      name  = "appName"
+      value = "frontend"
   }
 }
-
-resource "kubernetes_service" "frontend" {
-  metadata {
-    name = "frontend"
-  }
-  spec {
-    selector = {
-      app = kubernetes_deployment.frontend.metadata[0].labels.app
-    }
-    port {
-      port        = 3000
-      target_port = 3000
-    }
-    type = "LoadBalancer"
-  }
-}
-
 
 resource "kubernetes_deployment" "backend" {
   metadata {
