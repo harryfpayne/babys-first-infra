@@ -63,6 +63,7 @@ resource "digitalocean_kubernetes_cluster" "cluster" {
 
 <details>
     <summary>Need help?</summary>
+    
 ```terraform
 provider "kubernetes" {
   host = digitalocean_kubernetes_cluster.cluster.endpoint
